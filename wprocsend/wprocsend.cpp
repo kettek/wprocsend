@@ -2,8 +2,8 @@
 #include "Windows.h"
 #include "TlHelp32.h" // process-related
 
-char desc_string[] = "procsend, a utility for sending a signal to a process.\n";
-char usage_string[] = "  Usage: procsend (int|break|kill) (pid|program.exe)\n";
+char desc_string[] = "wprocsend, a utility for sending a signal to a process.\n";
+char usage_string[] = "  Usage: wprocsend (int|break|kill) (pid|program.exe)\n";
 
 char sig_strings[][6] = {
   "int",
@@ -46,7 +46,7 @@ int findPID(const char *exe_name) {
 int main(int argc, char *argv[]) {
   int sig, pid;
   int pos, is_pid;
-
+  // might as well only print description when invoked solo
   if (argc == 1) {
     printf(desc_string);
   }
@@ -54,6 +54,7 @@ int main(int argc, char *argv[]) {
     printf(usage_string);
     return 1;
   }
+  // get our signal/command type
   if (strcmp(sig_strings[0], argv[1]) == 0) {
     sig = CTRL_C_EVENT;
   } else if (strcmp(sig_strings[1], argv[1]) == 0) {
@@ -64,7 +65,7 @@ int main(int argc, char *argv[]) {
     printf(usage_string);
     return 1;
   }
-
+  // find out if this is a PID
   pos = 0;
   is_pid = true;
   while (argv[2][pos++] != '\0') {
@@ -73,7 +74,7 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
-
+  // acquire a PID either way
   if (is_pid) {
     pid = atoi(argv[2]);
   } else {
@@ -83,23 +84,22 @@ int main(int argc, char *argv[]) {
       return 2;
     }
   }
-
+  // let's send our signal!
   printf("%s: %d\n", argv[1], pid);
-  if (sig < 2) {
+  if (sig < 2) { // SIGINT, SIGBREAK
     FreeConsole();
     if (AttachConsole(pid) == 0) {
-      printf("AttachConsole failed!\n");
+      printf("ERROR: AttachConsole failed!\n");
       return 2;
     }
-    SetConsoleCtrlHandler(NULL, TRUE); // disable Control+C handling for our app
-    GenerateConsoleCtrlEvent(sig, 0); // generate Control+C event
-  } else {
+    SetConsoleCtrlHandler(NULL, TRUE);  // disable signal handling
+    GenerateConsoleCtrlEvent(sig, 0);
+  } else { // kill
     HANDLE explorer;
     explorer = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
     TerminateProcess(explorer, 1);
     CloseHandle(explorer);
   }
-
   return 0;
 }
 
