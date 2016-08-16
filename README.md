@@ -10,4 +10,4 @@ Hacked together to send a SIGINT to `ffmpeg.exe` to stop desktop capturing.
 
   * `wprocsend kill firefox.exe`
   * `wprocsend int ffmpeg.exe`
-  * `wprocesnd break 8723`
+  * `wprocsend break 8723`
