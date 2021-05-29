@@ -1,15 +1,54 @@
 #include "stdafx.h"
 #include "Windows.h"
 #include "TlHelp32.h" // process-related
+#include <psapi.h>    // For list processes
 
 char desc_string[] = "wprocsend, a utility for sending a signal to a process.\n";
-char usage_string[] = "  Usage: wprocsend (int|break|kill) (pid|program.exe)\n";
+char usage_string[] = "  Usage: wprocsend (int|break|kill|list) (pid|program.exe)\n";
 
 char sig_strings[][6] = {
   "int",
   "break",
   "kill"
 };
+
+int listProcesses() {
+  DWORD aProcesses[1024], cbNeeded, cProcesses;
+  unsigned int i;
+
+  // Get system processes.
+  if (!EnumProcesses(aProcesses, sizeof(aProcesses), &cbNeeded)) {
+    printf("No processes found\n");
+    return 2;
+  }
+  cProcesses = cbNeeded / sizeof(DWORD);
+
+  // Iterate and print information.
+  for (i = 0; i < cProcesses; i++) {
+    if (aProcesses[i] != 0) {
+      TCHAR szProcessName[MAX_PATH] = TEXT("<unknown>");
+
+      // Acquire process handle.
+      HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, aProcesses[i]);
+
+      // Acquire the process name.
+      if (hProcess != NULL) {
+        HMODULE hMod;
+        DWORD cbNeeded;
+
+        if (EnumProcessModules(hProcess, &hMod, sizeof(hMod), &cbNeeded)) {
+          GetModuleBaseName(hProcess, hMod, szProcessName, sizeof(szProcessName) / sizeof(TCHAR));
+        }
+
+        printf("%u\t%ls\n", aProcesses[i], szProcessName);
+
+        CloseHandle(hProcess);
+      }
+    }
+  }
+
+  return 0;
+}
 
 int findPID(const char *exe_name) {
   int pid = NULL;
@@ -50,7 +89,11 @@ int main(int argc, char *argv[]) {
   if (argc == 1) {
     printf(desc_string);
   }
-  if (argc <= 2) {
+  if (argc == 2) {
+    if (strcmp("list", argv[1]) == 0) {
+      return listProcesses();
+    }
+  } else {
     printf(usage_string);
     return 1;
   }
