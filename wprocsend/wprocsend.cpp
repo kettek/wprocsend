@@ -107,6 +107,8 @@ int main(int argc, char *argv[]) {
   // might as well only print description when invoked solo
   if (argc == 1) {
     printf(desc_string);
+    printf(usage_string);
+    return 1;
   }
   if (argc == 2) {
     if (strcmp("list", argv[1]) == 0) {
@@ -114,7 +116,6 @@ int main(int argc, char *argv[]) {
     } else if (strcmp("list-windows", argv[1]) == 0) {
       return listWindows();
     }
-  } else {
     printf(usage_string);
     return 1;
   }
@@ -132,11 +133,12 @@ int main(int argc, char *argv[]) {
   // find out if this is a PID
   pos = 0;
   is_pid = true;
-  while (argv[2][pos++] != '\0') {
+  while (argv[2][pos] != '\0') {
     if (!isdigit(argv[2][pos])) {
       is_pid = false;
       break;
     }
+    pos++;
   }
   // acquire a PID either way
   if (is_pid) {
@@ -159,8 +161,12 @@ int main(int argc, char *argv[]) {
     SetConsoleCtrlHandler(NULL, TRUE);  // disable signal handling
     GenerateConsoleCtrlEvent(sig, 0);
   } else { // kill
-    HANDLE explorer;
+    HANDLE explorer = NULL;
     explorer = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
+    if (explorer == NULL) {
+      printf("ERROR: OpenProcess failed!\n");
+      return 2;
+    }
     TerminateProcess(explorer, 1);
     CloseHandle(explorer);
   }
