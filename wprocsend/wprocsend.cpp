@@ -4,12 +4,31 @@
 #include <psapi.h>    // For list processes
 
 char desc_string[] = "wprocsend, a utility for sending a signal to a process.\n";
-char usage_string[] = "  Usage: wprocsend (int|break|kill|list) (pid|program.exe)\n";
+char usage_string[] = "  Usage: wprocsend (int|break|kill|list|list-windows) (pid|program.exe)\n";
 
 char sig_strings[][6] = {
   "int",
   "break",
   "kill"
+};
+
+BOOL CALLBACK ListWindowProc(HWND hwnd, LPARAM lParam) {
+  if (!IsWindowVisible(hwnd)) {
+    return true;
+  }
+  LPSTR windowName = new CHAR[1000];
+  DWORD processID;
+  if ( GetWindowTextA(hwnd, windowName, 1000) > 0) {
+    GetWindowThreadProcessId(hwnd, &processID);
+    printf("%u\t%s\n", processID, windowName);
+  }
+  delete[] windowName;
+  return true;
+};
+
+int listWindows() {
+  EnumWindows(ListWindowProc, NULL);
+  return 0;
 };
 
 int listProcesses() {
@@ -92,6 +111,8 @@ int main(int argc, char *argv[]) {
   if (argc == 2) {
     if (strcmp("list", argv[1]) == 0) {
       return listProcesses();
+    } else if (strcmp("list-windows", argv[1]) == 0) {
+      return listWindows();
     }
   } else {
     printf(usage_string);
